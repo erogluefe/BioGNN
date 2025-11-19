@@ -9,6 +9,11 @@ from .graphsage import (
     AdaptiveGraphSAGE,
     MiniBatchGraphSAGE
 )
+from .multitask import (
+    MultiTaskBiometricModel,
+    AdaptiveTaskWeighting,
+    GradientBalancing
+)
 
 __all__ = [
     # GCN models
@@ -23,4 +28,9 @@ __all__ = [
     'MultimodalGraphSAGE',
     'AdaptiveGraphSAGE',
     'MiniBatchGraphSAGE',
+
+    # Multi-task models
+    'MultiTaskBiometricModel',
+    'AdaptiveTaskWeighting',
+    'GradientBalancing',
 ]
