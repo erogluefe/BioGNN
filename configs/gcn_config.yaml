@@ -1,0 +1,24 @@
+# Configuration for GCN-based multimodal fusion
+
+# Inherit from default and override
+defaults:
+  - default_config
+
+experiment:
+  name: "biognn_gcn"
+
+model:
+  gnn_type: "gcn"
+  gnn_config:
+    input_dim: 512
+    hidden_dims: [512, 256, 128]
+    num_classes: 2
+    dropout: 0.5
+    pooling: "concat"
+    use_residual: true
+
+training:
+  num_epochs: 150
+  batch_size: 64
+  optimizer:
+    learning_rate: 0.0005
