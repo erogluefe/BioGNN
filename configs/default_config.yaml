@@ -1,0 +1,143 @@
+# Default configuration for BioGNN multimodal biometric authentication
+
+# Dataset configuration
+dataset:
+  name: "multimodal_biometric"
+  root: "./datasets"
+  modalities:
+    - face
+    - fingerprint
+    - iris
+    - voice
+  train_split: 0.7
+  val_split: 0.15
+  test_split: 0.15
+  num_pairs: 10000
+  genuine_ratio: 0.5
+  augmentation: true
+  download: false
+
+# Model configuration
+model:
+  type: "multimodal_fusion"  # multimodal_fusion, ensemble, hybrid
+  gnn_type: "gat"  # gcn, gat, graphsage
+  feature_dim: 512
+
+  # GNN specific configuration
+  gnn_config:
+    input_dim: 512
+    hidden_dims: [256, 128]
+    num_classes: 2
+    dropout: 0.5
+    pooling: "mean"  # mean, max, concat
+
+  # GAT specific (if gnn_type=gat)
+  gat_config:
+    heads: [4, 4]
+    use_v2: true
+
+  # Graph construction
+  graph:
+    edge_strategy: "fully_connected"  # fully_connected, star, hierarchical
+    use_adaptive_edges: true
+    use_quality_scores: false
+
+  # Feature extractors
+  feature_extractors:
+    face:
+      backbone: "resnet50"  # resnet50, resnet18, mobilenet_v2
+      pretrained: true
+      freeze_backbone: false
+    fingerprint:
+      input_channels: 1
+    iris:
+      input_channels: 1
+    voice:
+      sample_rate: 16000
+      n_mfcc: 40
+
+# Training configuration
+training:
+  num_epochs: 100
+  batch_size: 32
+  num_workers: 4
+
+  # Optimization
+  optimizer:
+    type: "adam"
+    learning_rate: 0.0001
+    weight_decay: 0.00001
+
+  # Learning rate scheduler
+  scheduler:
+    type: "reduce_on_plateau"
+    mode: "min"
+    factor: 0.5
+    patience: 5
+
+  # Loss function
+  loss:
+    type: "cross_entropy"
+
+  # Regularization
+  dropout: 0.5
+
+  # Mixed precision training
+  use_amp: true
+
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 15
+
+  # Checkpointing
+  save_best: true
+  checkpoint_interval: 10
+
+# Evaluation configuration
+evaluation:
+  metrics:
+    - eer
+    - auc
+    - far
+    - frr
+    - accuracy
+    - precision
+    - recall
+
+  # Operating points
+  target_far_values: [0.01, 0.001, 0.0001]
+  target_frr_values: [0.01, 0.001, 0.0001]
+
+  # Visualization
+  plot_roc: true
+  plot_det: true
+  plot_confusion_matrix: true
+  plot_score_distribution: true
+
+# Spoofing attack evaluation
+spoofing:
+  enabled: true
+  attack_types:
+    - print_attack
+    - replay_attack
+    - mask_attack
+    - synthetic_fingerprint
+    - voice_synthesis
+    - adversarial
+  num_trials: 100
+
+# Experiment configuration
+experiment:
+  name: "biognn_default"
+  output_dir: "./experiments"
+  seed: 42
+  device: "cuda"  # cuda, cpu
+  log_interval: 10
+
+# Logging
+logging:
+  use_tensorboard: true
+  use_wandb: false
+  wandb_project: "biognn"
+  wandb_entity: null
