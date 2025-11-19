@@ -49,12 +49,13 @@ Bu proje, parmak izi, yüz, ses ve iris gibi çoklu biyometrik modaliteleri Graf
 - **GraphSAGE**: Örnekleme ve agregasyon tabanlı öğrenme
 - **Ensemble**: Birden fazla GNN modelinin kombinasyonu
 - **Hybrid**: Early, late ve GNN füzyonun birleşimi
+- **Multi-Task Learning**: Kimlik doğrulama + kalite tahmini + canlılık tespiti
 
 ### 📊 Desteklenen Modaliteler
 
-- 👤 **Yüz**: ResNet/MobileNet tabanlı özellik çıkarımı
-- 👆 **Parmak İzi**: Özel CNN mimarisi
-- 👁️ **Iris**: Adaptif iris tanıma
+- 👤 **Yüz**: ResNet-50/ResNet-18/MobileNetV2 (pretrained)
+- 👆 **Parmak İzi**: MobileNetV2 veya özel CNN
+- 👁️ **Iris**: DenseNet-121 veya özel CNN
 - 🎤 **Ses**: MFCC + CNN/LSTM hibrit model
 
 ### 🛡️ Güvenlik Özellikleri
@@ -66,11 +67,18 @@ Bu proje, parmak izi, yüz, ses ve iris gibi çoklu biyometrik modaliteleri Graf
 
 ### 📈 Değerlendirme Araçları
 
-- Equal Error Rate (EER)
-- False Accept Rate (FAR) / False Reject Rate (FRR)
-- ROC/AUC eğrileri
-- DET (Detection Error Tradeoff) eğrileri
-- Confusion matrix ve score distributions
+- **Temel Metrikler**: EER, FAR, FRR, GAR, Accuracy, Precision, Recall, F1
+- **Eğriler**: ROC/AUC, DET, CMC (Cumulative Match Characteristic)
+- **Görselleştirme**: Confusion matrix, score distributions
+- **İstatistiksel Analiz**: Cross-validation, paired t-test, Wilcoxon test
+- **Ablasyon Çalışmaları**: Modalite, mimari ve komponent ablasyonu
+
+### 🎯 Gelişmiş Özellikler
+
+- **Kontrastif Öğrenme**: TripletLoss, hard negative mining, center loss
+- **Adaptif Eşik**: Kullanıcı ve modaliteye özgü dinamik eşikler
+- **Kalite Tabanlı Füzyon**: Biyometrik kalite skorlarına göre ağırlıklandırma
+- **Hesaplama Profiling**: Zaman, bellek ve FLOPs analizi
 
 ## 🚀 Kurulum
 
