@@ -2,6 +2,85 @@
 
 Bu dokümantasyon, BioGNN ile kullanılabilecek multimodal biyometrik veri setlerini ve bunları nasıl hazırlayacağınızı açıklar.
 
+## 📥 Otomatik Veri Seti İndirme
+
+BioGNN, birçok popüler biyometrik veri setini otomatik olarak indirmek için yerleşik downloader'lar sağlar.
+
+### Hızlı Başlangıç
+
+```bash
+# Tüm mevcut veri setlerini listele
+python scripts/download_datasets.py --list
+
+# Belirli bir veri setini indir
+python scripts/download_datasets.py --dataset lfw --root ./datasets
+
+# Birden fazla veri setini indir
+python scripts/download_datasets.py --dataset lfw socofing librispeech --root ./datasets
+
+# LibriSpeech için özel subset
+python scripts/download_datasets.py --dataset librispeech --subset dev-clean
+```
+
+### Python'dan Kullanım
+
+```python
+from biognn.data.downloaders import get_downloader
+
+# LFW veri setini indir
+downloader = get_downloader('lfw', root='./datasets')
+dataset_path = downloader.download()
+
+# LibriSpeech subset indir
+from biognn.data.downloaders import LibriSpeechDownloader
+downloader = LibriSpeechDownloader(root='./datasets', subset='dev-clean')
+dataset_path = downloader.download()
+
+# SOCOFing (Kaggle - API credentials gerekli)
+from biognn.data.downloaders import SOCOFingDownloader
+downloader = SOCOFingDownloader(root='./datasets')
+dataset_path = downloader.download()
+```
+
+### Otomatik İndirme Destekleyen Veri Setleri
+
+| Veri Seti | Boyut | İndirme Türü | Ek Gereksinim |
+|-----------|-------|--------------|---------------|
+| **LFW** | ~200MB | Otomatik | Yok |
+| **CelebA** | ~1.3GB | Otomatik | Google Drive (manuel gerekebilir) |
+| **SOCOFing** | ~1GB | Kaggle API | Kaggle credentials |
+| **LibriSpeech** | 340MB-60GB | Otomatik | Yok |
+
+### Manuel İndirme Gerektiren Veri Setleri
+
+Bazı veri setleri kayıt ve anlaşma gerektirdiği için manuel indirme talimatları gösterilir:
+
+```bash
+# Talimatleri göster
+python scripts/download_datasets.py --dataset casia-webface --show-instructions
+python scripts/download_datasets.py --dataset voxceleb --show-instructions
+python scripts/download_datasets.py --dataset fvc2004 --show-instructions
+```
+
+### Kaggle Veri Setleri İçin Kurulum
+
+SOCOFing gibi Kaggle veri setleri için:
+
+```bash
+# Kaggle API'yi kur
+pip install kaggle
+
+# Kaggle credentials yapılandır
+# 1. https://www.kaggle.com/settings/account adresine git
+# 2. "Create New API Token" tıkla
+# 3. kaggle.json dosyasını ~/.kaggle/ dizinine yerleştir
+# 4. İzinleri ayarla
+chmod 600 ~/.kaggle/kaggle.json
+
+# Artık Kaggle veri setlerini indirebilirsiniz
+python scripts/download_datasets.py --dataset socofing
+```
+
 ## 🗂️ Önerilen Açık Veri Setleri
 
 ### 1. Yüz Tanıma
