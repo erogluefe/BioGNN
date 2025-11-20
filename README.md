@@ -80,6 +80,13 @@ Bu proje, parmak izi, yüz, ses ve iris gibi çoklu biyometrik modaliteleri Graf
 - **Kalite Tabanlı Füzyon**: Biyometrik kalite skorlarına göre ağırlıklandırma
 - **Hesaplama Profiling**: Zaman, bellek ve FLOPs analizi
 
+### 📥 Veri Seti İndirme
+
+- **Otomatik İndirme**: LFW, CelebA, LibriSpeech gibi popüler veri setleri
+- **Kaggle Entegrasyonu**: SOCOFing gibi Kaggle veri setleri için API desteği
+- **Manuel İndirme Talimatları**: Kayıt gerektiren veri setleri için adım adım kılavuz
+- **Progress Tracking**: İndirme ilerlemesi ve MD5 doğrulama
+
 ## 🚀 Kurulum
 
 ### Gereksinimler
@@ -123,6 +130,41 @@ pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -
 
 ### 1. Veri Seti Hazırlama
 
+#### Seçenek A: Otomatik İndirme (Önerilen)
+
+BioGNN, popüler biyometrik veri setlerini otomatik olarak indirebilir:
+
+```bash
+# Tüm mevcut veri setlerini listele
+python scripts/download_datasets.py --list
+
+# LFW (yüz) veri setini indir
+python scripts/download_datasets.py --dataset lfw --root ./datasets
+
+# SOCOFing (parmak izi) - Kaggle API gerektirir
+python scripts/download_datasets.py --dataset socofing --root ./datasets
+
+# LibriSpeech (ses) - dev-clean subset
+python scripts/download_datasets.py --dataset librispeech --subset dev-clean --root ./datasets
+
+# Birden fazla veri seti indir
+python scripts/download_datasets.py --dataset lfw librispeech --root ./datasets
+```
+
+**Python'dan kullanım:**
+
+```python
+from biognn.data.downloaders import get_downloader
+
+# Veri setini indir
+downloader = get_downloader('lfw', root='./datasets')
+dataset_path = downloader.download()
+```
+
+Detaylı bilgi için: [docs/DATASETS.md](docs/DATASETS.md)
+
+#### Seçenek B: Manuel Veri Organizasyonu
+
 Veri setinizi aşağıdaki yapıda organize edin:
 
 ```
@@ -136,7 +178,7 @@ datasets/
 └── test/
 ```
 
-**Not**: `biognn/data/base_dataset.py` dosyasındaki `MultimodalBiometricDataset` sınıfını kullanarak kendi veri setinizi implemente etmelisiniz.
+**Not**: `biognn/data/base_dataset.py` dosyasındaki `MultimodalBiometricDataset` sınıfını kullanarak kendi veri setinizi implemente etmelisiniz. Örnek implementasyon için `biognn/data/example_dataset.py` ve `examples/quickstart.py` dosyalarına bakın.
 
 ### 2. Eğitim
 

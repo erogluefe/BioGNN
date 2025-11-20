@@ -22,6 +22,17 @@ from .feature_extractors import (
     VoiceFeatureExtractor,
     get_feature_extractor
 )
+from .example_dataset import (
+    ExampleMultimodalDataset,
+    SyntheticMultimodalDataset,
+    create_example_dataset
+)
+
+# Dataset downloaders (lazy import to avoid dependencies)
+def get_downloader(dataset_name, root='./datasets'):
+    """Get a dataset downloader instance."""
+    from .downloaders import get_downloader as _get_downloader
+    return _get_downloader(dataset_name, root)
 
 __all__ = [
     # Base classes
@@ -43,4 +54,12 @@ __all__ = [
     'IrisFeatureExtractor',
     'VoiceFeatureExtractor',
     'get_feature_extractor',
+
+    # Example datasets
+    'ExampleMultimodalDataset',
+    'SyntheticMultimodalDataset',
+    'create_example_dataset',
+
+    # Downloaders
+    'get_downloader',
 ]
