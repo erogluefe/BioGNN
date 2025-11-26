@@ -94,7 +94,11 @@ Bu proje, parmak izi, yüz, ses ve iris gibi çoklu biyometrik modaliteleri Graf
 - Python 3.8+
 - PyTorch 2.0+
 - PyTorch Geometric
-- CUDA 11.0+ (GPU kullanımı için)
+
+**GPU (Opsiyonel):**
+- CUDA 11.0+ (NVIDIA GPU için)
+- Apple Silicon (M1/M2/M3 Mac için MPS desteği - deneysel)
+- **CPU-only mode desteklenir!** (GPU gerektirmez)
 
 ### Adım 1: Repository'yi klonlayın
 
@@ -121,10 +125,31 @@ pip install -e .
 
 ### Adım 4: PyTorch Geometric'i kurun
 
+**NVIDIA GPU ile (CUDA):**
 ```bash
 pip install torch-geometric
 pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
 ```
+
+**CPU veya Mac (Intel/Apple Silicon):**
+```bash
+pip install torch-geometric
+pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+```
+
+### Adım 5: Device kontrolü (Opsiyonel)
+
+Sisteminizin uyumluluğunu kontrol edin ve önerilen ayarları görün:
+
+```bash
+python scripts/check_device.py
+```
+
+Bu script:
+- PyTorch kurulumunu kontrol eder
+- Mevcut device'ı algılar (CUDA/MPS/CPU)
+- Optimize ayarları önerir
+- Hızlı tensor testi yapar
 
 ## 🏃 Hızlı Başlangıç
 
@@ -182,8 +207,9 @@ datasets/
 
 ### 2. Eğitim
 
+**GPU ile:**
 ```bash
-# Varsayılan konfigürasyonla
+# Varsayılan konfigürasyonla (CUDA gerekli)
 python train.py --config configs/default_config.yaml
 
 # GCN modeliyle
@@ -192,6 +218,25 @@ python train.py --config configs/gcn_config.yaml --gpu 0
 # Ensemble modeliyle
 python train.py --config configs/ensemble_config.yaml
 ```
+
+**CPU veya Mac ile:**
+```bash
+# CPU-optimized konfigürasyon (MacBook, laptop için)
+python train.py --config configs/cpu_config.yaml
+
+# Device otomatik algılama
+python train.py --config configs/cpu_config.yaml --device auto
+
+# Apple Silicon Mac için (MPS - deneysel)
+python train.py --config configs/cpu_config.yaml --device mps
+```
+
+**Not**: CPU modunda eğitim GPU'dan 2-5x daha yavaştır ancak tamamen çalışır. `cpu_config.yaml` dosyası:
+- Daha küçük batch size (4)
+- Gradient accumulation (batch=32 simülasyonu)
+- Hafif modeller (ResNet18)
+- Küçük görüntü boyutları
+- MacBook Intel i9 için optimize edilmiştir
 
 ### 3. Değerlendirme
 

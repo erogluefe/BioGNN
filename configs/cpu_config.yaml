@@ -1,0 +1,127 @@
+# CPU-Optimized Configuration for BioGNN
+# Suitable for MacBook, laptops, or machines without GPU
+# Optimized for Intel/AMD CPUs
+
+# Model settings
+model:
+  type: 'gcn'  # GCN is lighter than GAT
+  gnn_type: 'gcn'
+  modalities: ['face', 'fingerprint', 'iris', 'voice']
+  feature_dim: 256  # Reduced from 512 for faster CPU inference
+  gnn_hidden_dims: [128, 64]  # Smaller hidden dimensions
+  num_classes: 2
+  dropout: 0.3
+  use_adaptive_edges: true
+
+# Training settings
+training:
+  num_epochs: 20  # Reduced for faster CPU training
+  batch_size: 4  # Small batch size for CPU
+  learning_rate: 0.0001
+  weight_decay: 0.00001
+  gradient_accumulation_steps: 8  # Simulate batch_size=32
+
+  # Device
+  device: 'cpu'  # Force CPU (or 'auto' for auto-detection)
+  use_amp: false  # AMP not supported on CPU
+
+  # Optimizer
+  optimizer: 'adam'
+  momentum: 0.9  # For SGD
+
+  # Scheduler
+  scheduler: 'reduce_on_plateau'
+  scheduler_patience: 3
+  scheduler_factor: 0.5
+
+  # Early stopping
+  early_stopping_patience: 10
+
+  # Logging
+  log_interval: 5
+  save_interval: 10
+
+# Data settings
+data:
+  root: './datasets'
+  train_split: 'train'
+  val_split: 'val'
+  test_split: 'test'
+
+  # DataLoader settings (CPU-optimized)
+  num_workers: 2  # Fewer workers for CPU
+  pin_memory: false  # Not needed for CPU
+  prefetch_factor: 2
+  persistent_workers: false
+
+  # Augmentation (lighter for CPU)
+  augment_train: true
+  augment_val: false
+
+  # Transforms
+  face:
+    img_size: [96, 96]  # Smaller resolution for faster processing
+    normalize: true
+  fingerprint:
+    img_size: [64, 64]  # Reduced from 96x96
+    normalize: true
+  iris:
+    img_size: [48, 192]  # Reduced from 64x256
+    normalize: true
+  voice:
+    sample_rate: 16000
+    n_mfcc: 20  # Reduced from 40
+    n_fft: 512
+    hop_length: 160
+    max_length: 32000  # 2 seconds instead of 3
+
+# Feature extractors (lighter models)
+feature_extractors:
+  face:
+    backbone: 'resnet18'  # Lighter than ResNet50
+    pretrained: true
+    feature_dim: 256
+  fingerprint:
+    backbone: 'custom'  # Custom CNN is lighter than MobileNetV2
+    feature_dim: 256
+  iris:
+    backbone: 'custom'  # Custom CNN
+    feature_dim: 256
+  voice:
+    type: 'cnn'  # CNN instead of CNN+LSTM
+    feature_dim: 256
+
+# Evaluation
+evaluation:
+  metrics: ['eer', 'far', 'frr', 'auc', 'accuracy']
+  save_curves: true
+  save_confusion_matrix: true
+
+# Output
+output:
+  experiment_name: 'biognn_cpu'
+  output_dir: './experiments'
+  save_best: true
+  save_last: true
+
+# Performance optimization for CPU
+optimization:
+  # Use smaller models
+  use_lightweight_models: true
+
+  # Memory optimization
+  gradient_checkpointing: false  # Can enable if memory is limited
+
+  # Threading
+  torch_threads: 4  # Adjust based on your CPU cores
+  mkldnn: true  # Enable MKL-DNN for Intel CPUs
+
+  # Reduce precision (not quantization, just careful numerics)
+  use_float32: true  # Keep float32 for stability on CPU
+
+# Notes for MacBook users
+# - Intel i9 has 8 cores, so num_workers=2-4 is good
+# - Gradient accumulation simulates larger batches
+# - Smaller image sizes reduce computation
+# - ResNet18 instead of ResNet50 is much faster
+# - Expected training time: 2-5x slower than GPU, but still manageable
