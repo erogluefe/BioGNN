@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from typing import Dict, Optional, Callable, List
+from typing import Dict, Optional, Callable, List, Union
 from tqdm import tqdm
 import numpy as np
 from pathlib import Path
@@ -14,6 +14,7 @@ import json
 import time
 
 from ..evaluation.metrics import BiometricEvaluator
+from .device import get_device, optimize_for_device
 
 
 class Trainer:
@@ -28,7 +29,7 @@ class Trainer:
         val_loader: Optional[DataLoader] = None,
         optimizer: Optional[optim.Optimizer] = None,
         criterion: Optional[nn.Module] = None,
-        device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
+        device: Optional[Union[str, torch.device]] = None,
         output_dir: str = './experiments',
         experiment_name: str = 'default',
         use_amp: bool = True,  # Automatic Mixed Precision
@@ -41,18 +42,25 @@ class Trainer:
             val_loader: Validation data loader
             optimizer: Optimizer (if None, uses Adam)
             criterion: Loss function (if None, uses CrossEntropyLoss)
-            device: Device to train on
+            device: Device to train on (auto-detects if None: CUDA > MPS > CPU)
             output_dir: Output directory for checkpoints and logs
             experiment_name: Name of experiment
-            use_amp: Use automatic mixed precision
+            use_amp: Use automatic mixed precision (only on CUDA)
             log_interval: Logging interval
         """
-        self.model = model.to(device)
+        # Auto-detect device if not specified
+        self.device = get_device(device, verbose=True)
+
+        # Move model to device
+        self.model = model.to(self.device)
         self.train_loader = train_loader
         self.val_loader = val_loader
-        self.device = device
         self.log_interval = log_interval
-        self.use_amp = use_amp and device == 'cuda'
+
+        # AMP only supported on CUDA
+        self.use_amp = use_amp and self.device.type == 'cuda'
+        if use_amp and self.device.type != 'cuda':
+            print(f"⚠️  AMP requested but not supported on {self.device.type}. Disabling AMP.")
 
         # Setup output directory
         self.output_dir = Path(output_dir) / experiment_name
