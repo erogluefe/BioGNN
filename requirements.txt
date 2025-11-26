@@ -32,12 +32,12 @@ scikit-image>=0.21.0
 albumentations>=1.3.0
 
 # Utilities
-wandb>=0.15.0
 omegaconf>=2.3.0
-hydra-core>=1.3.0
 
-# Dataset Downloaders (Optional)
-kaggle>=1.5.0  # For Kaggle datasets (e.g., SOCOFing)
+# Optional packages (see requirements-optional.txt for advanced features):
+# - wandb>=0.15.0  (Experiment tracking - requires Go)
+# - hydra-core>=1.3.0  (Advanced config management)
+# - kaggle>=1.5.0  (Kaggle datasets like SOCOFing)
 
 # Testing
 pytest>=7.4.0

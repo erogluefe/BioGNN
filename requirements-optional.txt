@@ -1,0 +1,20 @@
+# Optional Dependencies for BioGNN
+# These packages provide advanced features but are not required for basic functionality
+
+# Experiment Tracking & Logging
+wandb>=0.15.0  # Weights & Biases experiment tracking (requires Go: https://go.dev/doc/install)
+
+# Advanced Configuration Management
+hydra-core>=1.3.0  # Advanced config composition and overrides
+
+# Dataset Downloaders
+kaggle>=1.5.0  # Download datasets from Kaggle (e.g., SOCOFing)
+# Note: Requires API credentials from https://www.kaggle.com/settings/account
+
+# Installation:
+# pip install -r requirements-optional.txt
+
+# Or install individually:
+# pip install kaggle  # For Kaggle datasets
+# pip install wandb   # For experiment tracking (requires Go)
+# pip install hydra-core  # For advanced config
