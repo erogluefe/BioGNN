@@ -6,7 +6,9 @@ from .base_dataset import (
     BiometricModality,
     BiometricSample,
     MultimodalBiometricDataset,
-    VerificationPairDataset
+    VerificationPairDataset,
+    biometric_sample_collate_fn,
+    biometric_collate_fn
 )
 from .transforms import (
     FaceTransform,
@@ -40,6 +42,8 @@ __all__ = [
     'BiometricSample',
     'MultimodalBiometricDataset',
     'VerificationPairDataset',
+    'biometric_sample_collate_fn',
+    'biometric_collate_fn',
 
     # Transforms
     'FaceTransform',

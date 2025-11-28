@@ -211,3 +211,61 @@ class VerificationPairDataset(Dataset):
         sample1 = self.base_dataset[idx1]
         sample2 = self.base_dataset[idx2]
         return sample1, sample2, label
+
+
+def biometric_sample_collate_fn(batch: List[BiometricSample]) -> BiometricSample:
+    """
+    Custom collate function for batching BiometricSample objects.
+
+    Args:
+        batch: List of BiometricSample objects
+
+    Returns:
+        A single BiometricSample with batched tensors
+    """
+    # Get all modalities present in the batch
+    all_modalities = set()
+    for sample in batch:
+        all_modalities.update(sample.modalities.keys())
+
+    # Stack tensors for each modality
+    batched_modalities = {}
+    for modality in all_modalities:
+        # Get tensors for this modality from all samples
+        tensors = [s.modalities[modality] for s in batch if modality in s.modalities]
+        if tensors:
+            batched_modalities[modality] = torch.stack(tensors, dim=0)
+
+    # Collect subject IDs
+    subject_ids = [s.subject_id for s in batch]
+
+    # Create batched sample
+    return BiometricSample(
+        subject_id=subject_ids,  # Store as list for batch
+        modalities=batched_modalities,
+        labels={},
+        is_genuine=batch[0].is_genuine,
+        metadata={'batch_size': len(batch)}
+    )
+
+
+def biometric_collate_fn(batch: List[Tuple[BiometricSample, BiometricSample, int]]) -> Tuple[BiometricSample, BiometricSample, torch.Tensor]:
+    """
+    Custom collate function for batching BiometricSample pairs (for verification tasks).
+
+    Args:
+        batch: List of (sample1, sample2, label) tuples
+
+    Returns:
+        Tuple of (batched_sample1, batched_sample2, labels_tensor)
+    """
+    samples1, samples2, labels = zip(*batch)
+
+    # Collate labels
+    labels = torch.tensor(labels, dtype=torch.long)
+
+    # Collate BiometricSamples
+    batched_sample1 = biometric_sample_collate_fn(samples1)
+    batched_sample2 = biometric_sample_collate_fn(samples2)
+
+    return batched_sample1, batched_sample2, labels
