@@ -15,7 +15,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from biognn.data.example_dataset import SyntheticMultimodalDataset
-from biognn.data import VerificationPairDataset
+from biognn.data import VerificationPairDataset, biometric_collate_fn
 from biognn.fusion import MultimodalBiometricFusion
 from biognn.evaluation import BiometricEvaluator
 from biognn.utils import Trainer
@@ -68,14 +68,16 @@ def main():
         train_dataset,
         batch_size=16,
         shuffle=True,
-        num_workers=0  # Use 0 for demo, increase for real training
+        num_workers=0,  # Use 0 for demo, increase for real training
+        collate_fn=biometric_collate_fn
     )
 
     val_loader = DataLoader(
         val_dataset,
         batch_size=16,
         shuffle=False,
-        num_workers=0
+        num_workers=0,
+        collate_fn=biometric_collate_fn
     )
 
     # ===== 3. Build Model =====
@@ -143,9 +145,8 @@ def main():
         for sample1, sample2, labels in val_loader:
             # Prepare inputs
             modality_inputs = {}
-            for modality in model.modalities:
-                if modality in sample1.modalities:
-                    modality_inputs[modality] = sample1.modalities[modality].to(device)
+            for modality, tensor in sample1.modalities.items():
+                modality_inputs[modality] = tensor.to(device)
 
             # Forward pass
             logits, _ = model(modality_inputs)

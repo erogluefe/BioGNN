@@ -185,7 +185,8 @@ class MyDataset(ExampleMultimodalDataset):
 ### 2. Dataset'i Kullanın
 
 ```python
-from biognn.data import get_default_transforms
+from biognn.data import get_default_transforms, biometric_sample_collate_fn
+from torch.utils.data import DataLoader
 
 # Transforms oluştur
 transforms = {
@@ -201,10 +202,18 @@ dataset = MyDataset(
     transform=transforms
 )
 
-# DataLoader oluştur
-from torch.utils.data import DataLoader
-loader = DataLoader(dataset, batch_size=32, shuffle=True)
+# DataLoader oluştur (collate_fn kullanmayı unutmayın!)
+loader = DataLoader(
+    dataset,
+    batch_size=32,
+    shuffle=True,
+    collate_fn=biometric_sample_collate_fn  # BiometricSample objeleri için gerekli
+)
 ```
+
+**Önemli Not**: `BiometricSample` objeleri döndüren her dataset için `collate_fn` parametresi kullanılmalıdır:
+- Tek sample'lar için: `biometric_sample_collate_fn`
+- Verification pair'ları için: `biometric_collate_fn` (VerificationPairDataset ile kullanılır)
 
 ## 🎓 Model Eğitimi
 
