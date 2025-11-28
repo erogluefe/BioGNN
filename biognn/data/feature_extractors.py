@@ -163,14 +163,6 @@ class FingerprintFeatureExtractor(nn.Module):
             nn.Linear(1024, feature_dim)
         )
 
-            self.fc_layers = nn.Sequential(
-                nn.Linear(512, 1024),
-                nn.BatchNorm1d(1024),
-                nn.ReLU(),
-                nn.Dropout(0.5),
-                nn.Linear(1024, feature_dim)
-            )
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
