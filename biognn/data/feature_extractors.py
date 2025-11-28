@@ -254,14 +254,6 @@ class IrisFeatureExtractor(nn.Module):
             nn.Linear(512, feature_dim)
         )
 
-            self.fc_layers = nn.Sequential(
-                nn.Linear(256, 512),
-                nn.BatchNorm1d(512),
-                nn.ReLU(),
-                nn.Dropout(0.4),
-                nn.Linear(512, feature_dim)
-            )
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
