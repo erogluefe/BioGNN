@@ -51,6 +51,15 @@ experiments/*/outputs/
 *.pt
 *.ckpt
 
+# Visualization outputs
+outputs/
+*.png
+*.jpg
+*.jpeg
+*.pdf
+!docs/**/*.png
+!docs/**/*.jpg
+
 # Logs
 logs/
 *.log
