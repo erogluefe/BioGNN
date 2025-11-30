@@ -19,10 +19,13 @@ import matplotlib.pyplot as plt
 # biognn/__init__ yüklemeden direkt modülleri import et
 import importlib.util
 
+# Base path'i dinamik olarak bul
+BASE_DIR = Path(__file__).parent.absolute()
+
 # graph_builder modülünü manuel yükle
 spec = importlib.util.spec_from_file_location(
     "graph_builder",
-    "/home/user/BioGNN/biognn/fusion/graph_builder.py"
+    str(BASE_DIR / "biognn" / "fusion" / "graph_builder.py")
 )
 graph_builder = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(graph_builder)
@@ -33,7 +36,7 @@ AdaptiveEdgeWeighting = graph_builder.AdaptiveEdgeWeighting
 # graph_viz modülünü manuel yükle
 spec = importlib.util.spec_from_file_location(
     "graph_viz",
-    "/home/user/BioGNN/biognn/visualization/graph_viz.py"
+    str(BASE_DIR / "biognn" / "visualization" / "graph_viz.py")
 )
 graph_viz = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(graph_viz)

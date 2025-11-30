@@ -24,8 +24,11 @@ def load_module(name, path):
     spec.loader.exec_module(module)
     return module
 
+# Base path'i dinamik olarak bul
+BASE_DIR = Path(__file__).parent.absolute()
+base_path = BASE_DIR / "biognn" / "visualization"
+
 # Modülleri yükle
-base_path = Path("/home/user/BioGNN/biognn/visualization")
 data_viz = load_module("data_viz", base_path / "data_viz.py")
 training_viz = load_module("training_viz", base_path / "training_viz.py")
 analysis_viz = load_module("analysis_viz", base_path / "analysis_viz.py")
