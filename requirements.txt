@@ -19,6 +19,7 @@ torchaudio>=2.0.0
 # Visualization & Metrics
 matplotlib>=3.7.0
 seaborn>=0.12.0
+networkx>=3.0  # For graph structure visualization
 # plotly>=5.14.0  # Optional - for interactive plots
 # tensorboard>=2.13.0  # Optional - for training visualization
 
