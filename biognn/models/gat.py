@@ -146,7 +146,8 @@ class MultimodalGAT(nn.Module):
             )
 
         # Determine final dimension
-        final_dim = hidden_dims[-1] * heads[-1]
+        # Last layer doesn't concatenate heads, so output is just hidden_dims[-1]
+        final_dim = hidden_dims[-1]
 
         # Determine classifier input dimension
         if pooling == 'concat':
