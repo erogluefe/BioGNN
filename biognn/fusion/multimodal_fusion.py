@@ -210,14 +210,15 @@ class MultimodalBiometricFusion(nn.Module):
             edge_index_batch.append(edge_index + offset)
         edge_index_batch = torch.cat(edge_index_batch, dim=1)
 
-        # Handle edge weights
-        edge_weight = None
+        # Handle edge weights/attributes
         if edge_weights is not None:
-            # Flatten edge weights
-            edge_weight = edge_weights.t().reshape(-1)
+            # Flatten edge weights and reshape for edge_dim=1: [num_edges, 1]
+            edge_attr = edge_weights.t().reshape(-1).unsqueeze(-1)
+        else:
+            edge_attr = None
 
         # Apply GNN
-        logits, embeddings = self.gnn(x, edge_index_batch, edge_weight, batch_indices)
+        logits, embeddings = self.gnn(x, edge_index_batch, edge_attr, batch_indices)
 
         return logits, embeddings
 
