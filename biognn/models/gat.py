@@ -20,7 +20,8 @@ class GATLayer(nn.Module):
         dropout: float = 0.5,
         use_bn: bool = True,
         concat: bool = True,
-        use_v2: bool = True
+        use_v2: bool = True,
+        edge_dim: int = 1
     ):
         super().__init__()
 
@@ -35,7 +36,8 @@ class GATLayer(nn.Module):
             out_channels,
             heads=heads,
             dropout=dropout,
-            concat=concat
+            concat=concat,
+            edge_dim=edge_dim  # Support edge attributes (e.g., adaptive edge weights)
         )
 
         # Batch normalization
@@ -91,7 +93,8 @@ class MultimodalGAT(nn.Module):
         num_classes: int = 2,
         dropout: float = 0.5,
         pooling: str = 'mean',
-        use_v2: bool = True
+        use_v2: bool = True,
+        edge_dim: int = 1
     ):
         """
         Args:
@@ -102,6 +105,7 @@ class MultimodalGAT(nn.Module):
             dropout: Dropout rate
             pooling: Global pooling method
             use_v2: Use GATv2Conv (more expressive)
+            edge_dim: Edge feature dimension (1 for scalar edge weights)
         """
         super().__init__()
 
@@ -136,7 +140,8 @@ class MultimodalGAT(nn.Module):
                     heads=heads[i],
                     dropout=dropout,
                     concat=concat,
-                    use_v2=use_v2
+                    use_v2=use_v2,
+                    edge_dim=edge_dim
                 )
             )
 
