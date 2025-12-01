@@ -154,6 +154,10 @@ def get_voice_transform(
             align_corners=False
         ).squeeze(0)
 
+        # Remove channel dimension if present (should be [n_mels, time])
+        if mel_spec.ndim == 3 and mel_spec.shape[0] == 1:
+            mel_spec = mel_spec.squeeze(0)
+
         # Normalize
         mel_spec = (mel_spec - mel_spec.mean()) / (mel_spec.std() + 1e-8)
 
