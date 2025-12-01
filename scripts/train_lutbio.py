@@ -159,11 +159,15 @@ def build_dataloaders(config: dict):
 def build_model(config: dict) -> nn.Module:
     """Build multimodal fusion model"""
 
+    # Get GNN config and add num_classes
+    gnn_config = config['model'].get('gnn_config', {}).copy()
+    gnn_config['num_classes'] = config['model'].get('num_classes', 2)
+
     model = MultimodalBiometricFusion(
         modalities=config['dataset']['modalities'],
         feature_dim=config['model']['feature_dim'],
         gnn_type=config['model']['gnn_type'],
-        gnn_config=config['model'].get('gnn_config'),
+        gnn_config=gnn_config,
         edge_strategy=config['model']['graph']['edge_strategy'],
         use_adaptive_edges=config['model']['graph']['use_adaptive_edges'],
         use_quality_scores=config['model']['graph']['use_quality_scores']
