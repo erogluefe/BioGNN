@@ -365,6 +365,7 @@ def get_feature_extractor(
     extractors = {
         'face': FaceFeatureExtractor,
         'fingerprint': FingerprintFeatureExtractor,
+        'finger': FingerprintFeatureExtractor,  # alias for fingerprint
         'iris': IrisFeatureExtractor,
         'voice': VoiceFeatureExtractor,
     }
