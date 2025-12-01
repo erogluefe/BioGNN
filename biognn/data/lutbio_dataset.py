@@ -344,6 +344,21 @@ class LUTBioDataset(MultimodalBiometricDataset):
         """Required by parent class - we handle loading differently"""
         pass
 
+    def download(self):
+        """
+        Download LUTBio dataset
+
+        Note: LUTBio requires manual application and approval.
+        Visit: https://data.mendeley.com/datasets/jszw485f8j/6
+        Email the application form to: rykeryang@163.com
+        """
+        raise NotImplementedError(
+            "LUTBio dataset requires manual download.\n"
+            "Please visit: https://data.mendeley.com/datasets/jszw485f8j/6\n"
+            "Fill the application form and email to: rykeryang@163.com\n"
+            "After approval, download and extract to the specified root directory."
+        )
+
     def __len__(self) -> int:
         if self.mode == 'verification':
             return len(self.pairs)
