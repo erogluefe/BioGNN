@@ -46,8 +46,22 @@ def main():
     print("LUTBIO DATASET VISUALIZATION")
     print("="*80)
 
-    # Get transforms (no augmentation for visualization)
-    transforms = get_lutbio_transforms(split='val', augmentation=False)
+    # Get transforms (no augmentation, no normalization for visualization)
+    # Use simple transforms: just resize and convert to tensor
+    from torchvision import transforms as T
+
+    transforms = {
+        'face': T.Compose([
+            T.Resize((112, 112)),
+            T.ToTensor()
+        ]),
+        'finger': T.Compose([
+            T.Grayscale(num_output_channels=1),
+            T.Resize((96, 96)),
+            T.ToTensor()
+        ]),
+        'voice': get_lutbio_transforms(split='val', augmentation=False)['voice']
+    }
 
     # Create dataset
     print("\nLoading dataset...")
