@@ -1,0 +1,170 @@
+# LUTBio Multimodal Biometric Authentication Configuration
+# Optimized for demo dataset (6 subjects)
+
+experiment:
+  name: "lutbio_gat"
+  seed: 42
+  output_dir: "experiments/lutbio"
+  save_checkpoint_every: 5
+  log_every: 1
+
+# Dataset configuration
+dataset:
+  name: "lutbio"
+  root: "datasets/lutbio"
+  modalities: ['face', 'finger', 'voice']
+
+  # Split configuration (for demo: 4 train, 1 val, 1 test)
+  train_subjects: null  # null = auto split (first 4)
+  val_subjects: null    # null = auto split (5th subject)
+  test_subjects: null   # null = auto split (6th subject)
+
+  # Mode: 'verification' or 'identification' or 'both'
+  mode: 'both'
+
+  # Verification pairs
+  pairs_per_subject: 20  # Genuine + Imposter pairs per subject
+
+  # Image sizes
+  face_size: 112
+  fingerprint_size: 96
+  spectrogram_size: [40, 100]  # [n_mels, time_frames]
+
+  # Augmentation
+  augmentation: true
+
+# Model configuration
+model:
+  type: "multimodal_fusion"
+  gnn_type: "gat"  # Graph Attention Network
+  feature_dim: 512
+
+  # Feature extractors
+  feature_extractors:
+    face:
+      backbone: "resnet18"  # Lighter model for demo
+      pretrained: true
+      feature_dim: 512
+
+    finger:
+      backbone: "mobilenetv2"
+      pretrained: true
+      feature_dim: 512
+
+    voice:
+      backbone: "custom_cnn"
+      input_channels: 1
+      feature_dim: 512
+
+  # GNN configuration
+  gnn_config:
+    hidden_dims: [256, 128]
+    heads: [4, 2]  # For GAT
+    dropout: 0.3
+    use_batch_norm: true
+
+  # Graph structure
+  graph:
+    edge_strategy: "fully_connected"  # All modalities connected
+    use_adaptive_edges: true
+    use_quality_scores: false  # Disable for demo
+
+  # Fusion
+  fusion_dim: 256
+  num_classes: 2  # Binary: genuine/imposter for verification
+
+# Training configuration
+training:
+  num_epochs: 100
+  batch_size: 8  # Small batch for demo (6 subjects total)
+  gradient_accumulation_steps: 4  # Effective batch = 32
+
+  # Optimizer
+  optimizer:
+    type: "adamw"
+    learning_rate: 0.0001
+    weight_decay: 0.0001
+    betas: [0.9, 0.999]
+
+  # Learning rate scheduler
+  scheduler:
+    type: "cosine"
+    warmup_epochs: 5
+    min_lr: 0.000001
+
+  # Loss weights (multi-task)
+  loss_weights:
+    verification: 1.0
+    identification: 0.5
+    contrastive: 0.3
+
+  # Contrastive learning
+  contrastive:
+    temperature: 0.07
+    margin: 0.5
+
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 20
+    metric: "val_eer"
+    mode: "min"
+
+  # Mixed precision
+  mixed_precision: false  # Disable for CPU/Mac compatibility
+
+# Evaluation configuration
+evaluation:
+  metrics:
+    - eer
+    - far
+    - frr
+    - accuracy
+    - precision
+    - recall
+    - f1
+    - auc
+
+  # Thresholds to evaluate
+  far_at_frr: [0.01, 0.001, 0.0001]
+
+  # CMC for identification
+  cmc_ranks: [1, 5, 10]
+
+  # Plots
+  plot_roc: true
+  plot_det: true
+  plot_cmc: true
+  plot_confusion_matrix: true
+
+# Visualization
+visualization:
+  enabled: true
+  save_dir: "experiments/lutbio/visualizations"
+
+  # What to visualize
+  plot_samples: true
+  plot_training_curves: true
+  plot_attention_weights: true
+  plot_feature_space: true
+  plot_error_analysis: true
+
+  # Feature space visualization
+  tsne_perplexity: 30
+  umap_n_neighbors: 15
+
+# Logging
+logging:
+  use_tensorboard: false  # Disable for simplicity
+  use_wandb: false
+  log_level: "INFO"
+
+# Device
+device:
+  type: "auto"  # auto, cuda, mps, or cpu
+  gpu_id: 0
+
+# Reproducibility
+reproducibility:
+  deterministic: true
+  benchmark: false
