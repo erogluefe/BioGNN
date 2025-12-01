@@ -49,6 +49,45 @@ def main():
     # Get transforms (no augmentation, no normalization for visualization)
     # Use simple transforms: just resize and convert to tensor
     from torchvision import transforms as T
+    import torchaudio.transforms as AT
+
+    def get_unnormalized_voice_transform(
+        spectrogram_size=(40, 100),
+        sample_rate=16000,
+        n_fft=400,
+        hop_length=160
+    ):
+        """Voice transform without normalization for visualization"""
+        n_mels, target_length = spectrogram_size
+
+        def transform(waveform):
+            # Convert to mono if stereo
+            if waveform.shape[0] > 1:
+                waveform = torch.mean(waveform, dim=0, keepdim=True)
+
+            # Create mel spectrogram
+            mel_spec = AT.MelSpectrogram(
+                sample_rate=sample_rate,
+                n_fft=n_fft,
+                hop_length=hop_length,
+                n_mels=n_mels
+            )(waveform)
+
+            # Convert to log scale (dB)
+            mel_spec = AT.AmplitudeToDB()(mel_spec)
+
+            # Resize to fixed length
+            mel_spec = torch.nn.functional.interpolate(
+                mel_spec.unsqueeze(0),
+                size=(n_mels, target_length),
+                mode='bilinear',
+                align_corners=False
+            ).squeeze(0)
+
+            # No normalization for visualization
+            return mel_spec
+
+        return transform
 
     transforms = {
         'face': T.Compose([
@@ -60,7 +99,7 @@ def main():
             T.Resize((96, 96)),
             T.ToTensor()
         ]),
-        'voice': get_lutbio_transforms(split='val', augmentation=False)['voice']
+        'voice': get_unnormalized_voice_transform()
     }
 
     # Create dataset

@@ -119,7 +119,8 @@ class DatasetVisualizer:
                     if sample.shape[2] == 1:
                         sample = sample.squeeze(2)
 
-                    if sample.shape[2] == 3:
+                    # Check dimensionality after squeeze
+                    if sample.ndim == 3 and sample.shape[2] == 3:
                         im = ax.imshow(sample)
                     else:
                         im = ax.imshow(sample, cmap=settings['cmap'], aspect=settings['aspect'])
