@@ -14,12 +14,13 @@ class BiometricModality:
     """Enum-like class for biometric modalities"""
     FACE = "face"
     FINGERPRINT = "fingerprint"
+    FINGER = "finger"  # Alias for fingerprint (used in some datasets)
     VOICE = "voice"
     IRIS = "iris"
 
     @classmethod
     def all_modalities(cls) -> List[str]:
-        return [cls.FACE, cls.FINGERPRINT, cls.VOICE, cls.IRIS]
+        return [cls.FACE, cls.FINGERPRINT, cls.FINGER, cls.VOICE, cls.IRIS]
 
 
 class BiometricSample:
