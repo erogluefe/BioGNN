@@ -71,7 +71,7 @@ model:
 
   # Fusion
   fusion_dim: 256
-  num_classes: 2  # Binary: genuine/imposter for verification
+  num_classes: 1  # Binary verification: single logit output for BCEWithLogitsLoss
 
 # Training configuration
 training:
