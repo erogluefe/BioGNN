@@ -82,7 +82,7 @@ def biometric_collate_fn(batch):
     # Batch labels
     labels = torch.tensor([sample.labels.get('is_genuine', sample.is_genuine) for sample in batch], dtype=torch.long)
 
-    # Batch subject IDs
+    # Batch subject IDs (now properly mapped to integers in dataset)
     subject_ids = torch.tensor([sample.subject_id for sample in batch], dtype=torch.long)
 
     return {
