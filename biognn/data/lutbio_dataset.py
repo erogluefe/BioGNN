@@ -97,6 +97,10 @@ class LUTBioDataset(MultimodalBiometricDataset):
         # Split subjects
         all_subjects = sorted(self.subjects_data.keys())
 
+        # Create subject ID mapping (string -> int)
+        self.subject_id_map = {subj_str: idx for idx, subj_str in enumerate(all_subjects)}
+        self.reverse_subject_id_map = {idx: subj_str for subj_str, idx in self.subject_id_map.items()}
+
         if train_subjects is None or val_subjects is None or test_subjects is None:
             # Default split: 4/1/1
             if len(all_subjects) < 3:
@@ -381,7 +385,7 @@ class LUTBioDataset(MultimodalBiometricDataset):
 
         # Return as BiometricSample
         return BiometricSample(
-            subject_id=pair['subject_id'],
+            subject_id=self.subject_id_map[pair['subject_id']],
             modalities=modalities_1,
             is_genuine=pair['is_genuine'],
             metadata={
@@ -397,7 +401,7 @@ class LUTBioDataset(MultimodalBiometricDataset):
         modalities = self._load_modality_samples(probe['modality_samples'])
 
         return BiometricSample(
-            subject_id=probe['subject_id'],
+            subject_id=self.subject_id_map[probe['subject_id']],
             modalities=modalities,
             is_genuine=True,
             metadata={'is_identification': True}
