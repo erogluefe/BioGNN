@@ -60,6 +60,39 @@ def get_device(config: dict) -> torch.device:
     return device
 
 
+def biometric_collate_fn(batch):
+    """
+    Custom collate function for BiometricSample objects
+
+    Args:
+        batch: List of BiometricSample objects
+
+    Returns:
+        Dictionary with batched tensors
+    """
+    # Get all available modalities from first sample
+    modalities = batch[0].get_available_modalities()
+
+    # Batch modalities
+    batched_modalities = {}
+    for modality in modalities:
+        modality_tensors = [sample.modalities[modality] for sample in batch]
+        batched_modalities[modality] = torch.stack(modality_tensors, dim=0)
+
+    # Batch labels
+    labels = torch.tensor([sample.labels.get('is_genuine', sample.is_genuine) for sample in batch], dtype=torch.long)
+
+    # Batch subject IDs
+    subject_ids = torch.tensor([sample.subject_id for sample in batch], dtype=torch.long)
+
+    return {
+        'modalities': batched_modalities,
+        'labels': labels,
+        'subject_ids': subject_ids,
+        'is_genuine': labels  # alias for compatibility
+    }
+
+
 def build_dataloaders(config: dict):
     """Build train and validation dataloaders"""
 
@@ -101,13 +134,14 @@ def build_dataloaders(config: dict):
         seed=config['experiment']['seed']
     )
 
-    # Create dataloaders
+    # Create dataloaders with custom collate function
     train_loader = DataLoader(
         train_dataset,
         batch_size=config['training']['batch_size'],
         shuffle=True,
         num_workers=0,  # Set to 0 for Mac compatibility
-        pin_memory=False
+        pin_memory=False,
+        collate_fn=biometric_collate_fn
     )
 
     val_loader = DataLoader(
@@ -115,7 +149,8 @@ def build_dataloaders(config: dict):
         batch_size=config['training']['batch_size'],
         shuffle=False,
         num_workers=0,
-        pin_memory=False
+        pin_memory=False,
+        collate_fn=biometric_collate_fn
     )
 
     return train_loader, val_loader, train_dataset, val_dataset
@@ -155,15 +190,15 @@ def train_epoch(
 
     pbar = tqdm(dataloader, desc=f"Epoch {epoch}")
 
-    for batch_idx, sample in enumerate(pbar):
-        # Get modality inputs
+    for batch_idx, batch in enumerate(pbar):
+        # Get modality inputs - batch is now a dict from collate_fn
         modality_inputs = {}
         for modality in config['dataset']['modalities']:
-            if modality in sample.modalities:
-                modality_inputs[modality] = sample.modalities[modality].to(device)
+            if modality in batch['modalities']:
+                modality_inputs[modality] = batch['modalities'][modality].to(device)
 
         # Get labels
-        labels = sample.is_genuine.float().to(device)
+        labels = batch['labels'].float().to(device)
 
         # Forward pass
         logits, _ = model(modality_inputs)
@@ -214,15 +249,15 @@ def validate(
     all_scores = []
     all_labels = []
 
-    for sample in tqdm(dataloader, desc="Validation"):
-        # Get modality inputs
+    for batch in tqdm(dataloader, desc="Validation"):
+        # Get modality inputs - batch is now a dict from collate_fn
         modality_inputs = {}
         for modality in config['dataset']['modalities']:
-            if modality in sample.modalities:
-                modality_inputs[modality] = sample.modalities[modality].to(device)
+            if modality in batch['modalities']:
+                modality_inputs[modality] = batch['modalities'][modality].to(device)
 
         # Get labels
-        labels = sample.is_genuine.float().to(device)
+        labels = batch['labels'].float().to(device)
 
         # Forward pass
         logits, _ = model(modality_inputs)
