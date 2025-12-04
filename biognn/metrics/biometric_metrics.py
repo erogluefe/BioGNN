@@ -225,8 +225,25 @@ def calculate_verification_metrics(
     predictions = (scores >= threshold).astype(int)
     accuracy = accuracy_score(labels, predictions)
 
-    # Calculate confusion matrix
-    tn, fp, fn, tp = confusion_matrix(labels, predictions).ravel()
+    # Calculate confusion matrix with explicit labels to handle edge cases
+    cm = confusion_matrix(labels, predictions, labels=[0, 1])
+
+    # Handle cases where confusion matrix is not 2x2
+    if cm.shape == (2, 2):
+        tn, fp, fn, tp = cm.ravel()
+    elif len(impostor_scores) == 0:
+        # Only genuine samples
+        tn, fp = 0, 0
+        fn = np.sum(predictions == 0)  # False negatives
+        tp = np.sum(predictions == 1)  # True positives
+    elif len(genuine_scores) == 0:
+        # Only impostor samples
+        fn, tp = 0, 0
+        tn = np.sum(predictions == 0)  # True negatives
+        fp = np.sum(predictions == 1)  # False positives
+    else:
+        # Fallback
+        tn, fp, fn, tp = 0, 0, 0, 0
 
     # Additional metrics
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0

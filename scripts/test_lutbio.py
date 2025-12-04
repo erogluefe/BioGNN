@@ -254,6 +254,15 @@ def main():
     print(f"\nGenuine pairs: {len(genuine_scores)}")
     print(f"Impostor pairs: {len(impostor_scores)}")
 
+    # Check for imbalanced data
+    if len(impostor_scores) == 0:
+        print("\n⚠️  WARNING: No impostor pairs in test set!")
+        print("⚠️  Metrics (EER, FAR, ROC) will not be meaningful.")
+        print("⚠️  Consider using a larger test set or cross-validation.\n")
+    elif len(genuine_scores) == 0:
+        print("\n⚠️  WARNING: No genuine pairs in test set!")
+        print("⚠️  Metrics will not be meaningful.\n")
+
     # Calculate metrics
     print("\nCalculating metrics...")
     metrics = calculate_verification_metrics(genuine_scores, impostor_scores)

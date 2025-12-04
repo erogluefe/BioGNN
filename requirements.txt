@@ -43,3 +43,4 @@ omegaconf>=2.3.0
 # Testing (Optional)
 # pytest>=7.4.0
 # pytest-cov>=4.1.0
+gradio>=4.0.0
