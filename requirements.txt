@@ -45,5 +45,5 @@ omegaconf>=2.3.0
 # pytest-cov>=4.1.0
 
 # Demo & Web Interface
-gradio==4.44.1
-huggingface-hub==0.19.4  # Pin to 0.19.4 for compatibility with gradio 4.44.1
+gradio==4.16.0  # Stable version with better compatibility
+huggingface-hub==0.19.4  # Compatible with gradio 4.16.0
