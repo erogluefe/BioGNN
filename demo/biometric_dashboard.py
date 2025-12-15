@@ -1293,7 +1293,315 @@ def create_dashboard():
                 """)
 
             # ===============================
-            # SEKME 7: Hakkinda
+            # SEKME 7: Gelistirme Sureci
+            # ===============================
+            with gr.TabItem("Gelistirme Sureci"):
+                gr.Markdown("""
+                ## GNN ile Multimodal Biyometrik Sistem Gelistirme Sureci
+
+                Bu bolumde, LUTBIO dataset kullanarak yuz, parmak izi ve ses modaliteleri ile
+                GNN tabanli multimodal biyometrik dogrulama sisteminin nasil gelistirildigi
+                adim adim anlatilmaktadir.
+
+                ---
+
+                ### ADIM 1: Veri Hazirlama ve LUTBIO Dataset
+
+                ```
+                ┌─────────────────────────────────────────────────────────────┐
+                │                    LUTBIO DATASET                           │
+                │  ┌─────────┐    ┌─────────┐    ┌─────────┐                 │
+                │  │   YUZ   │    │ PARMAK  │    │   SES   │                 │
+                │  │  (JPG)  │    │  IZI    │    │  (WAV)  │                 │
+                │  │ 6 ornek │    │ (BMP)   │    │ 3 ornek │                 │
+                │  │ /kisi   │    │10 ornek │    │  /kisi  │                 │
+                │  └─────────┘    └─────────┘    └─────────┘                 │
+                │                    83+ Kisi                                 │
+                └─────────────────────────────────────────────────────────────┘
+                ```
+
+                **Veri Yukleme Kodu:**
+                ```python
+                from biognn.data.lutbio_dataset import LUTBioDataset
+
+                # Dataset olustur
+                dataset = LUTBioDataset(
+                    root='data/LUTBIO',
+                    modalities=['face', 'finger', 'voice'],
+                    split='train',
+                    mode='verification'
+                )
+                ```
+
+                ---
+
+                ### ADIM 2: Ozellik Cikarimi (Feature Extraction)
+
+                Her modalite icin ayri CNN tabanli ozellik cikaricilar kullanilir:
+
+                | Modalite | Model | Cikti Boyutu |
+                |----------|-------|--------------|
+                | Yuz | ResNet50 | 512 |
+                | Parmak Izi | MobileNetV2 | 512 |
+                | Ses | Custom CNN + MFCC | 512 |
+
+                ```python
+                from biognn.data.feature_extractors import (
+                    FaceFeatureExtractor,
+                    FingerprintFeatureExtractor,
+                    VoiceFeatureExtractor
+                )
+
+                # Ozellik cikaricilar
+                face_extractor = FaceFeatureExtractor(backbone='resnet50')
+                finger_extractor = FingerprintFeatureExtractor()
+                voice_extractor = VoiceFeatureExtractor()
+                ```
+
+                ---
+
+                ### ADIM 3: Graf Yapisi Olusturma
+
+                ```
+                       ┌───────┐
+                       │  YUZ  │
+                       └───┬───┘
+                          ╱│╲
+                         ╱ │ ╲
+                        ╱  │  ╲
+                ┌──────┐   │   ┌───────┐
+                │PARMAK│───┼───│  SES  │
+                │ IZI  │   │   │       │
+                └──────┘   │   └───────┘
+                          ╲│╱
+                    FULLY CONNECTED
+                ```
+
+                **Graf Olusturma:**
+                ```python
+                from biognn.fusion.graph_builder import ModalityGraphBuilder
+
+                # Graf yapici
+                graph_builder = ModalityGraphBuilder(
+                    modalities=['face', 'finger', 'voice'],
+                    edge_strategy='fully_connected'
+                )
+
+                # Graf olustur
+                # Her modalite bir dugum (node)
+                # Modaliteler arasi iliskiler kenarlar (edges)
+                ```
+
+                ---
+
+                ### ADIM 4: GNN Model Secimi ve Egitimi
+
+                **Mevcut GNN Modelleri:**
+
+                #### 1. GCN (Graph Convolutional Network)
+                - Basit ve hizli
+                - Tum komsu bilgilerini esit agirlikla toplar
+
+                #### 2. GAT (Graph Attention Network)
+                - Attention mekanizmasi ile onemli modalitelere odaklanir
+                - En yuksek performans
+
+                #### 3. GraphSAGE
+                - Ornekleme ve toplama stratejisi
+                - Buyuk graflar icin olceklenebilir
+
+                ```python
+                from biognn.fusion.multimodal_fusion import MultimodalBiometricFusion
+
+                # Model olustur
+                model = MultimodalBiometricFusion(
+                    modalities=['face', 'finger', 'voice'],
+                    feature_dim=512,
+                    gnn_type='gat',  # veya 'gcn', 'graphsage'
+                    gnn_config={
+                        'hidden_dims': [256, 128],
+                        'heads': [4, 2],
+                        'dropout': 0.3
+                    }
+                )
+                ```
+
+                ---
+
+                ### ADIM 5: Egitim Sureci
+
+                ```
+                ┌────────────┐   ┌────────────┐   ┌────────────┐
+                │   EPOCH    │──▶│   BATCH    │──▶│   LOSS     │
+                │    1-50    │   │  ISLEME    │   │  HESAPLA   │
+                └────────────┘   └────────────┘   └─────┬──────┘
+                                                        │
+                                                        ▼
+                ┌────────────┐   ┌────────────┐   ┌────────────┐
+                │  KAYDET    │◀──│ DOGRULAMA  │◀──│  BACKPROP  │
+                │  EN IYI    │   │   KONTROL  │   │            │
+                └────────────┘   └────────────┘   └────────────┘
+                ```
+
+                ```python
+                # Egitim
+                python train.py --config configs/lutbio_config.yaml
+
+                # Temel egitim dongusu
+                for epoch in range(num_epochs):
+                    for batch in train_loader:
+                        # Forward pass
+                        logits, embeddings = model(batch)
+
+                        # Loss hesapla
+                        loss = criterion(logits, labels)
+
+                        # Backward pass
+                        loss.backward()
+                        optimizer.step()
+
+                    # Dogrulama
+                    val_metrics = evaluate(model, val_loader)
+                ```
+
+                ---
+
+                ### ADIM 6: Degerlendirme ve Test
+
+                **Biyometrik Metrikler:**
+
+                | Metrik | Formul | Aciklama |
+                |--------|--------|----------|
+                | EER | FAR = FRR | Esit hata orani |
+                | FAR | FP / (FP + TN) | Yanlis kabul |
+                | FRR | FN / (FN + TP) | Yanlis red |
+                | AUC | ROC alti alan | Genel performans |
+
+                ```python
+                from biognn.evaluation.metrics import BiometricEvaluator
+
+                evaluator = BiometricEvaluator()
+                results = evaluator.evaluate(y_true, y_scores)
+
+                print(f"EER: {results['eer']*100:.2f}%")
+                print(f"AUC: {results['auc']*100:.2f}%")
+                print(f"Accuracy: {results['accuracy']*100:.2f}%")
+                ```
+
+                ---
+
+                ### ADIM 7: Sonuclar ve Ciktilar
+
+                **Model Performansi:**
+
+                | Model | Dogruluk | EER | AUC |
+                |-------|----------|-----|-----|
+                | GCN | ~92% | ~4.5% | ~97.5% |
+                | GAT | ~94% | ~3.8% | ~98.2% |
+                | GraphSAGE | ~93% | ~4.1% | ~97.8% |
+
+                ---
+
+                ### Tam Kod Akisi
+
+                ```python
+                # 1. Import
+                from biognn.data.lutbio_dataset import LUTBioDataset
+                from biognn.fusion.multimodal_fusion import MultimodalBiometricFusion
+                from biognn.evaluation.metrics import BiometricEvaluator
+
+                # 2. Dataset
+                train_dataset = LUTBioDataset(root='data/LUTBIO', split='train')
+                test_dataset = LUTBioDataset(root='data/LUTBIO', split='test')
+
+                # 3. Model
+                model = MultimodalBiometricFusion(
+                    modalities=['face', 'finger', 'voice'],
+                    gnn_type='gat'
+                )
+
+                # 4. Egitim
+                trainer = Trainer(model, train_loader, val_loader)
+                trainer.train(num_epochs=50)
+
+                # 5. Test
+                evaluator = BiometricEvaluator()
+                results = evaluator.evaluate(y_true, y_scores)
+                ```
+                """)
+
+                # Gorsel adim adim akis
+                gr.Markdown("### Gorsel Akis Diyagrami")
+
+                def create_pipeline_diagram():
+                    fig, ax = plt.subplots(figsize=(16, 10))
+
+                    # Renkler
+                    colors = {
+                        'data': '#3498DB',
+                        'extract': '#9B59B6',
+                        'graph': '#E67E22',
+                        'gnn': '#E74C3C',
+                        'output': '#2ECC71'
+                    }
+
+                    # Kutular
+                    boxes = [
+                        {'text': 'LUTBIO\nDataset\n\nYuz + Parmak Izi\n+ Ses', 'pos': (0.08, 0.5), 'color': colors['data'], 'size': (0.12, 0.35)},
+                        {'text': 'Ozellik\nCikarimi\n\nResNet50\nMobileNet\nCNN+MFCC', 'pos': (0.28, 0.5), 'color': colors['extract'], 'size': (0.12, 0.35)},
+                        {'text': 'Graf\nOlusturma\n\n3 Dugum\n6 Kenar', 'pos': (0.48, 0.5), 'color': colors['graph'], 'size': (0.12, 0.3)},
+                        {'text': 'GNN\nKatmanlari\n\nGCN/GAT/\nGraphSAGE', 'pos': (0.68, 0.5), 'color': colors['gnn'], 'size': (0.12, 0.3)},
+                        {'text': 'Cikis\n\nGenuine\nvs\nImpostor', 'pos': (0.88, 0.5), 'color': colors['output'], 'size': (0.1, 0.25)},
+                    ]
+
+                    from matplotlib.patches import FancyBboxPatch
+
+                    for box in boxes:
+                        x, y = box['pos']
+                        w, h = box['size']
+                        rect = FancyBboxPatch((x - w/2, y - h/2), w, h,
+                                             boxstyle="round,pad=0.02,rounding_size=0.02",
+                                             facecolor=box['color'], edgecolor='black',
+                                             linewidth=2, alpha=0.85)
+                        ax.add_patch(rect)
+                        ax.text(x, y, box['text'], ha='center', va='center',
+                               fontsize=11, fontweight='bold', color='white')
+
+                    # Oklar
+                    arrow_props = dict(arrowstyle='->', color='#333', lw=3)
+                    arrow_positions = [
+                        ((0.14, 0.5), (0.22, 0.5)),
+                        ((0.34, 0.5), (0.42, 0.5)),
+                        ((0.54, 0.5), (0.62, 0.5)),
+                        ((0.74, 0.5), (0.83, 0.5)),
+                    ]
+
+                    for start, end in arrow_positions:
+                        ax.annotate('', xy=end, xytext=start, arrowprops=arrow_props)
+
+                    # Adim numaralari
+                    steps = ['ADIM 1', 'ADIM 2', 'ADIM 3', 'ADIM 4', 'ADIM 5']
+                    step_x = [0.08, 0.28, 0.48, 0.68, 0.88]
+
+                    for i, (step, x) in enumerate(zip(steps, step_x)):
+                        ax.text(x, 0.85, step, ha='center', va='center',
+                               fontsize=12, fontweight='bold',
+                               bbox=dict(boxstyle='round', facecolor='white', edgecolor='gray'))
+
+                    ax.set_xlim(0, 1)
+                    ax.set_ylim(0, 1)
+                    ax.set_title('GNN ile Multimodal Biyometrik Dogrulama - Gelistirme Akisi',
+                                fontsize=16, fontweight='bold', pad=20)
+                    ax.axis('off')
+
+                    plt.tight_layout()
+                    return fig
+
+                pipeline_plot = gr.Plot(label="Pipeline Diyagrami")
+                demo.load(create_pipeline_diagram, outputs=pipeline_plot)
+
+            # ===============================
+            # SEKME 8: Hakkinda
             # ===============================
             with gr.TabItem("Hakkinda"):
                 gr.Markdown("""
