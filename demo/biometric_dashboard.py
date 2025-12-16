@@ -783,10 +783,99 @@ class TrainingVisualizer:
 
 
 class BiometricSampleVisualizer:
-    """Biyometrik orneklerin gorsellestirmesi"""
+    """Biyometrik orneklerin gorsellestirmesi - Gercek LUTBIO verileri ile"""
 
-    def __init__(self):
+    def __init__(self, lutbio_path: str = None):
         self.data_gen = DemoDataGenerator()
+
+        # LUTBIO veri yolunu bul
+        if lutbio_path is None:
+            possible_paths = [
+                Path(__file__).parent.parent / 'datasets' / 'lutbio',
+                Path(__file__).parent.parent / 'data' / 'LUTBIO',
+                Path('/home/user/BioGNN/datasets/lutbio'),
+            ]
+            for p in possible_paths:
+                if p.exists():
+                    self.lutbio_path = p
+                    break
+            else:
+                self.lutbio_path = None
+        else:
+            self.lutbio_path = Path(lutbio_path)
+
+        # Mevcut kisileri tara
+        self.subjects = []
+        if self.lutbio_path and self.lutbio_path.exists():
+            for d in sorted(self.lutbio_path.iterdir()):
+                if d.is_dir() and d.name.isdigit():
+                    self.subjects.append(d.name)
+
+        print(f"LUTBIO yolu: {self.lutbio_path}")
+        print(f"Bulunan kisiler: {len(self.subjects)}")
+
+    def _load_face_image(self, subject_id: int) -> Optional[np.ndarray]:
+        """Gercek yuz goruntusu yukle"""
+        if not self.lutbio_path or subject_id >= len(self.subjects):
+            return None
+
+        subject_dir = self.lutbio_path / self.subjects[subject_id] / 'face'
+        if not subject_dir.exists():
+            return None
+
+        # Ilk jpg dosyasini bul
+        for f in sorted(subject_dir.iterdir()):
+            if f.suffix.lower() in ['.jpg', '.jpeg', '.png']:
+                try:
+                    img = Image.open(f).convert('RGB')
+                    return np.array(img)
+                except Exception as e:
+                    print(f"Yuz yukleme hatasi: {e}")
+        return None
+
+    def _load_fingerprint_image(self, subject_id: int) -> Optional[np.ndarray]:
+        """Gercek parmak izi goruntusu yukle"""
+        if not self.lutbio_path or subject_id >= len(self.subjects):
+            return None
+
+        subject_dir = self.lutbio_path / self.subjects[subject_id] / 'finger'
+        if not subject_dir.exists():
+            return None
+
+        # Ilk bmp dosyasini bul
+        for f in sorted(subject_dir.iterdir()):
+            if f.suffix.lower() in ['.bmp', '.png', '.jpg']:
+                try:
+                    img = Image.open(f).convert('RGB')
+                    return np.array(img)
+                except Exception as e:
+                    print(f"Parmak izi yukleme hatasi: {e}")
+        return None
+
+    def _load_voice_waveform(self, subject_id: int) -> Optional[Tuple[np.ndarray, int]]:
+        """Gercek ses dosyasi yukle"""
+        if not self.lutbio_path or subject_id >= len(self.subjects):
+            return None
+
+        subject_dir = self.lutbio_path / self.subjects[subject_id] / 'voice'
+        if not subject_dir.exists():
+            return None
+
+        # Ilk wav dosyasini bul
+        for f in sorted(subject_dir.iterdir()):
+            if f.suffix.lower() == '.wav':
+                try:
+                    import wave
+                    with wave.open(str(f), 'rb') as wav_file:
+                        sample_rate = wav_file.getframerate()
+                        n_frames = wav_file.getnframes()
+                        audio_data = wav_file.readframes(n_frames)
+                        waveform = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32)
+                        waveform = waveform / 32768.0  # Normalize
+                        return waveform, sample_rate
+                except Exception as e:
+                    print(f"Ses yukleme hatasi: {e}")
+        return None
 
     def create_face_gallery(self, num_subjects: int = 6) -> plt.Figure:
         """Yuz ornekleri galerisi"""
@@ -795,9 +884,15 @@ class BiometricSampleVisualizer:
 
         for i, ax in enumerate(axes):
             if i < num_subjects:
-                face = self.data_gen.generate_sample_face(i)
+                # Gercek veri dene
+                face = self._load_face_image(i)
+                if face is None:
+                    # Demo veri kullan
+                    face = self.data_gen.generate_sample_face(i)
+
                 ax.imshow(face)
-                ax.set_title(f'Kisi {i+1}', fontsize=12, fontweight='bold')
+                subject_name = self.subjects[i] if i < len(self.subjects) else f'{i+1:03d}'
+                ax.set_title(f'Kisi {subject_name}', fontsize=12, fontweight='bold')
             ax.axis('off')
 
         plt.suptitle('Yuz Ornekleri (LUTBIO Dataset)', fontsize=14, fontweight='bold')
@@ -811,9 +906,15 @@ class BiometricSampleVisualizer:
 
         for i, ax in enumerate(axes):
             if i < num_subjects:
-                finger = self.data_gen.generate_sample_fingerprint(i)
-                ax.imshow(finger)
-                ax.set_title(f'Kisi {i+1}', fontsize=12, fontweight='bold')
+                # Gercek veri dene
+                finger = self._load_fingerprint_image(i)
+                if finger is None:
+                    # Demo veri kullan
+                    finger = self.data_gen.generate_sample_fingerprint(i)
+
+                ax.imshow(finger, cmap='gray' if len(finger.shape) == 2 else None)
+                subject_name = self.subjects[i] if i < len(self.subjects) else f'{i+1:03d}'
+                ax.set_title(f'Kisi {subject_name}', fontsize=12, fontweight='bold')
             ax.axis('off')
 
         plt.suptitle('Parmak Izi Ornekleri (LUTBIO Dataset)', fontsize=14, fontweight='bold')
@@ -828,15 +929,22 @@ class BiometricSampleVisualizer:
             axes = [axes]
 
         for i, ax in enumerate(axes):
-            waveform, sr = self.data_gen.generate_sample_voice_waveform(i)
+            # Gercek veri dene
+            voice_data = self._load_voice_waveform(i)
+            if voice_data is not None:
+                waveform, sr = voice_data
+            else:
+                # Demo veri kullan
+                waveform, sr = self.data_gen.generate_sample_voice_waveform(i)
+
             time = np.linspace(0, len(waveform)/sr, len(waveform))
 
             ax.plot(time, waveform, 'b-', linewidth=0.5)
             ax.fill_between(time, waveform, alpha=0.3)
-            ax.set_ylabel(f'Kisi {i+1}', fontsize=11, fontweight='bold')
+            subject_name = self.subjects[i] if i < len(self.subjects) else f'{i+1:03d}'
+            ax.set_ylabel(f'Kisi {subject_name}', fontsize=11, fontweight='bold')
             ax.set_xlabel('Zaman (s)' if i == num_subjects-1 else '', fontsize=10)
             ax.grid(True, alpha=0.3)
-            ax.set_xlim(0, 2)
 
         plt.suptitle('Ses Dalga Formlari (LUTBIO Dataset)', fontsize=14, fontweight='bold')
         plt.tight_layout()
@@ -847,19 +955,28 @@ class BiometricSampleVisualizer:
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
         # Yuz
-        face = self.data_gen.generate_sample_face(subject_id)
+        face = self._load_face_image(subject_id)
+        if face is None:
+            face = self.data_gen.generate_sample_face(subject_id)
         axes[0].imshow(face)
         axes[0].set_title('Yuz', fontsize=12, fontweight='bold')
         axes[0].axis('off')
 
         # Parmak izi
-        finger = self.data_gen.generate_sample_fingerprint(subject_id)
-        axes[1].imshow(finger)
+        finger = self._load_fingerprint_image(subject_id)
+        if finger is None:
+            finger = self.data_gen.generate_sample_fingerprint(subject_id)
+        axes[1].imshow(finger, cmap='gray' if len(finger.shape) == 2 else None)
         axes[1].set_title('Parmak Izi', fontsize=12, fontweight='bold')
         axes[1].axis('off')
 
         # Ses
-        waveform, sr = self.data_gen.generate_sample_voice_waveform(subject_id)
+        voice_data = self._load_voice_waveform(subject_id)
+        if voice_data is not None:
+            waveform, sr = voice_data
+        else:
+            waveform, sr = self.data_gen.generate_sample_voice_waveform(subject_id)
+
         time = np.linspace(0, len(waveform)/sr, len(waveform))
         axes[2].plot(time, waveform, 'b-', linewidth=0.5)
         axes[2].fill_between(time, waveform, alpha=0.3)
@@ -867,14 +984,19 @@ class BiometricSampleVisualizer:
         axes[2].set_xlabel('Zaman (s)', fontsize=10)
         axes[2].grid(True, alpha=0.3)
 
-        plt.suptitle(f'Kisi {subject_id + 1} - Multimodal Biyometrik Veriler',
+        subject_name = self.subjects[subject_id] if subject_id < len(self.subjects) else f'{subject_id+1:03d}'
+        plt.suptitle(f'Kisi {subject_name} - Multimodal Biyometrik Veriler',
                     fontsize=14, fontweight='bold')
         plt.tight_layout()
         return fig
 
     def create_spectrogram(self, subject_id: int = 0) -> plt.Figure:
         """Ses spektrogrami"""
-        waveform, sr = self.data_gen.generate_sample_voice_waveform(subject_id, duration=2.0)
+        voice_data = self._load_voice_waveform(subject_id)
+        if voice_data is not None:
+            waveform, sr = voice_data
+        else:
+            waveform, sr = self.data_gen.generate_sample_voice_waveform(subject_id, duration=2.0)
 
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
 
@@ -895,7 +1017,8 @@ class BiometricSampleVisualizer:
         ax2.set_title('Spektrogram', fontsize=12, fontweight='bold')
         plt.colorbar(im, ax=ax2, label='Guc (dB)')
 
-        plt.suptitle(f'Kisi {subject_id + 1} - Ses Analizi', fontsize=14, fontweight='bold')
+        subject_name = self.subjects[subject_id] if subject_id < len(self.subjects) else f'{subject_id+1:03d}'
+        plt.suptitle(f'Kisi {subject_name} - Ses Analizi', fontsize=14, fontweight='bold')
         plt.tight_layout()
         return fig
 
@@ -999,34 +1122,13 @@ def create_dashboard():
                 # Hizli metrik ozeti
                 gr.Markdown("### Model Performans Ozeti")
 
-                with gr.Row():
-                    with gr.Column():
-                        gr.Markdown(f"""
-                        <div class="metric-box">
-                        <h3>GCN</h3>
-                        <p>Dogruluk: <b>{gcn_metrics['accuracy']*100:.2f}%</b></p>
-                        <p>EER: <b>{gcn_metrics['eer']*100:.2f}%</b></p>
-                        <p>AUC: <b>{gcn_metrics['auc']*100:.2f}%</b></p>
-                        </div>
-                        """)
-                    with gr.Column():
-                        gr.Markdown(f"""
-                        <div class="metric-box">
-                        <h3>GAT</h3>
-                        <p>Dogruluk: <b>{gat_metrics['accuracy']*100:.2f}%</b></p>
-                        <p>EER: <b>{gat_metrics['eer']*100:.2f}%</b></p>
-                        <p>AUC: <b>{gat_metrics['auc']*100:.2f}%</b></p>
-                        </div>
-                        """)
-                    with gr.Column():
-                        gr.Markdown(f"""
-                        <div class="metric-box">
-                        <h3>GraphSAGE</h3>
-                        <p>Dogruluk: <b>{sage_metrics['accuracy']*100:.2f}%</b></p>
-                        <p>EER: <b>{sage_metrics['eer']*100:.2f}%</b></p>
-                        <p>AUC: <b>{sage_metrics['auc']*100:.2f}%</b></p>
-                        </div>
-                        """)
+                gr.Markdown(f"""
+                | Model | Dogruluk (%) | EER (%) | AUC (%) |
+                |-------|-------------|---------|---------|
+                | **GCN** | {gcn_metrics['accuracy']*100:.2f} | {gcn_metrics['eer']*100:.2f} | {gcn_metrics['auc']*100:.2f} |
+                | **GAT** | {gat_metrics['accuracy']*100:.2f} | {gat_metrics['eer']*100:.2f} | {gat_metrics['auc']*100:.2f} |
+                | **GraphSAGE** | {sage_metrics['accuracy']*100:.2f} | {sage_metrics['eer']*100:.2f} | {sage_metrics['auc']*100:.2f} |
+                """)
 
             # ===============================
             # SEKME 2: Biyometrik Ornekler
