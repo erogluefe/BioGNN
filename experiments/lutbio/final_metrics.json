@@ -1,0 +1,21 @@
+{
+  "model_type": "GAT",
+  "dataset": "LUTBIO",
+  "modalities": ["face", "fingerprint", "voice"],
+  "accuracy": 1.0,
+  "eer": 0.0,
+  "far": 0.0,
+  "frr": 0.0,
+  "auc": 1.0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1_score": 1.0,
+  "val_loss": 0.5103,
+  "train_loss": 0.5312,
+  "train_accuracy": 0.675,
+  "best_epoch": 100,
+  "total_epochs": 100,
+  "training_time_minutes": 26.5,
+  "num_subjects": 10,
+  "num_samples": 80
+}
