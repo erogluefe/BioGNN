@@ -291,6 +291,9 @@ class RealDataLoader:
         self._training_history = None
         self._final_metrics = None
         self._test_results = None
+        self._scores = None
+        self._roc_det_curves = None
+        self._attention_weights = None
         self._load_data()
 
     def _load_data(self):
@@ -320,6 +323,27 @@ class RealDataLoader:
                 self._test_results = json.load(f)
             print(f"Test results yuklendi")
 
+        # Scores (genuine/impostor)
+        scores_file = self.experiments_path / 'test_results' / 'scores.json'
+        if scores_file.exists():
+            with open(scores_file, 'r') as f:
+                self._scores = json.load(f)
+            print(f"Skorlar yuklendi: {self._scores.get('num_genuine', 0)} genuine, {self._scores.get('num_impostor', 0)} impostor")
+
+        # ROC/DET curves
+        curves_file = self.experiments_path / 'test_results' / 'roc_det_curves.json'
+        if curves_file.exists():
+            with open(curves_file, 'r') as f:
+                self._roc_det_curves = json.load(f)
+            print(f"ROC/DET egrileri yuklendi")
+
+        # Attention weights
+        attention_file = self.experiments_path / 'test_results' / 'attention_weights.json'
+        if attention_file.exists():
+            with open(attention_file, 'r') as f:
+                self._attention_weights = json.load(f)
+            print(f"Attention agirliklari yuklendi")
+
     def has_real_data(self) -> bool:
         """Gercek veri mevcut mu?"""
         return self._training_history is not None
@@ -335,6 +359,18 @@ class RealDataLoader:
     def get_test_results(self) -> Optional[Dict]:
         """Test sonuclarini dondur"""
         return self._test_results
+
+    def get_scores(self) -> Optional[Dict]:
+        """Genuine/impostor skorlarini dondur"""
+        return self._scores
+
+    def get_roc_det_curves(self) -> Optional[Dict]:
+        """ROC/DET egri verilerini dondur"""
+        return self._roc_det_curves
+
+    def get_attention_weights(self) -> Optional[Dict]:
+        """Attention agirliklarini dondur"""
+        return self._attention_weights
 
     def get_model_metrics(self, model_name: str = 'GAT') -> Dict:
         """Belirli model icin metrikleri dondur"""
@@ -444,28 +480,35 @@ class GNNVisualizer:
         plt.tight_layout()
         return fig
 
-    def create_attention_heatmap(self, model_type: str = 'gat') -> plt.Figure:
+    def create_attention_heatmap(self, model_type: str = 'gat',
+                                   attention_data: Optional[Dict] = None) -> plt.Figure:
         """Attention agirliklari heatmap'i"""
-        np.random.seed(42)
         n = len(self.modalities)
 
-        # Ornek attention matrisi
-        if model_type.lower() == 'gat':
-            # GAT attention - daha keskin
-            attention = np.random.dirichlet(np.ones(n) * 0.5, n)
+        # Gercek attention verisi varsa kullan
+        if attention_data and 'modality_attention' in attention_data:
+            attention = np.array(attention_data['modality_attention']['matrix'])
+            labels = attention_data['modality_attention'].get('labels', [m.capitalize() for m in self.modalities])
+            data_source = "Gercek Veri"
         else:
-            # Diger modeller - daha uniform
-            attention = np.random.dirichlet(np.ones(n) * 2, n)
+            # Demo veri olustur
+            np.random.seed(42)
+            if model_type.lower() == 'gat':
+                attention = np.random.dirichlet(np.ones(n) * 0.5, n)
+            else:
+                attention = np.random.dirichlet(np.ones(n) * 2, n)
+            labels = [m.capitalize() for m in self.modalities]
+            data_source = "Demo Veri"
 
         fig, ax = plt.subplots(figsize=(10, 8))
 
         sns.heatmap(attention, annot=True, fmt='.3f', cmap='YlOrRd',
-                   xticklabels=[m.capitalize() for m in self.modalities],
-                   yticklabels=[m.capitalize() for m in self.modalities],
+                   xticklabels=labels,
+                   yticklabels=labels,
                    square=True, cbar_kws={'label': 'Attention Agirligi'},
                    linewidths=0.5, linecolor='gray', ax=ax)
 
-        ax.set_title(f'{model_type.upper()} Attention Agirliklari', fontsize=14, fontweight='bold')
+        ax.set_title(f'{model_type.upper()} Attention Agirliklari ({data_source})', fontsize=14, fontweight='bold')
         ax.set_xlabel('Hedef Modalite', fontsize=12)
         ax.set_ylabel('Kaynak Modalite', fontsize=12)
 
@@ -1157,7 +1200,25 @@ def create_dashboard():
             gat_metrics = data_gen.generate_model_metrics('gat')
             sage_metrics = data_gen.generate_model_metrics('graphsage')
 
-        scores, labels = data_gen.generate_scores(500)  # Skor dagilimi hala demo
+        # Skorlari gercek veriden al
+        real_scores = real_data.get_scores()
+        if real_scores:
+            genuine = np.array(real_scores['genuine_scores'])
+            impostor = np.array(real_scores['impostor_scores'])
+            scores = np.concatenate([genuine, impostor])
+            labels = np.concatenate([np.ones(len(genuine)), np.zeros(len(impostor))])
+            idx = np.random.permutation(len(scores))
+            scores, labels = scores[idx], labels[idx]
+            print(f">>> GERCEK SKORLAR YUKLENDI: {len(genuine)} genuine, {len(impostor)} impostor <<<")
+        else:
+            scores, labels = data_gen.generate_scores(500)
+
+        # ROC/DET egri verilerini al
+        roc_det_data = real_data.get_roc_det_curves()
+
+        # Attention agirliklarini al
+        attention_data = real_data.get_attention_weights()
+
         data_source = "GERCEK VERILER (experiments/lutbio)"
     else:
         print(">>> DEMO VERILERI KULLANILIYOR <<<")
@@ -1166,6 +1227,8 @@ def create_dashboard():
         gat_metrics = data_gen.generate_model_metrics('gat')
         sage_metrics = data_gen.generate_model_metrics('graphsage')
         scores, labels = data_gen.generate_scores(500)
+        roc_det_data = None
+        attention_data = None
         data_source = "DEMO VERILER"
 
     # CSS
@@ -1324,7 +1387,7 @@ def create_dashboard():
 
                 def update_gnn_viz(model_type, edge_strategy):
                     graph_fig = gnn_viz.create_graph_visualization(edge_strategy, model_type.lower())
-                    attention_fig = gnn_viz.create_attention_heatmap(model_type.lower())
+                    attention_fig = gnn_viz.create_attention_heatmap(model_type.lower(), attention_data)
                     arch_fig = gnn_viz.create_model_architecture_diagram(model_type.lower())
                     return graph_fig, attention_fig, arch_fig
 
